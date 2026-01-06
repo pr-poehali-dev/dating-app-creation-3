@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProfileDetail from '@/components/ProfileDetail';
 import SearchFilters, { SearchFiltersState } from '@/components/SearchFilters';
+import ChatWindow from '@/components/ChatWindow';
 
 interface Profile {
   id: number;
@@ -89,6 +90,7 @@ const Index = () => {
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
   const [likedProfiles, setLikedProfiles] = useState<number[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [openChat, setOpenChat] = useState<{ name: string; initial: string; verified: boolean } | null>(null);
   const [filters, setFilters] = useState<SearchFiltersState>({
     ageRange: [18, 50],
     distance: 50,
@@ -156,6 +158,17 @@ const Index = () => {
     setCurrentProfileIndex(0);
   };
 
+  if (openChat) {
+    return (
+      <ChatWindow
+        contactName={openChat.name}
+        contactInitial={openChat.initial}
+        verified={openChat.verified}
+        onBack={() => setOpenChat(null)}
+      />
+    );
+  }
+
   if (selectedProfile) {
     return (
       <ProfileDetail
@@ -166,7 +179,11 @@ const Index = () => {
           setSelectedProfile(null);
         }}
         onMessage={() => {
-          setActiveTab('messages');
+          setOpenChat({
+            name: selectedProfile.name,
+            initial: selectedProfile.name[0],
+            verified: selectedProfile.verified
+          });
           setSelectedProfile(null);
         }}
       />
@@ -343,7 +360,11 @@ const Index = () => {
                           )}
                         </div>
                       </div>
-                      <Button size="sm" className="rounded-full">
+                      <Button 
+                        size="sm" 
+                        className="rounded-full"
+                        onClick={() => setOpenChat({ name: like.name, initial: like.name[0], verified: like.mutual })}
+                      >
                         <Icon name="MessageCircle" size={16} />
                       </Button>
                     </div>
@@ -364,6 +385,7 @@ const Index = () => {
                     key={msg.id}
                     className="p-4 hover:shadow-md transition-shadow cursor-pointer animate-slide-up"
                     style={{ animationDelay: `${idx * 0.1}s` }}
+                    onClick={() => setOpenChat({ name: msg.name, initial: msg.name[0], verified: true })}
                   >
                     <div className="flex items-center gap-3">
                       <Avatar className="w-14 h-14 border-2 border-primary/20">
