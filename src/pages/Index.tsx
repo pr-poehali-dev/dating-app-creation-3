@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ProfileDetail from '@/components/ProfileDetail';
 
 interface Profile {
   id: number;
@@ -14,6 +15,11 @@ interface Profile {
   verified: boolean;
   interests: string[];
   photos: number;
+  location?: string;
+  work?: string;
+  education?: string;
+  height?: string;
+  lookingFor?: string;
 }
 
 const mockProfiles: Profile[] = [
@@ -24,7 +30,12 @@ const mockProfiles: Profile[] = [
     bio: 'Люблю путешествия, йогу и хорошую музыку. Ищу искренние отношения 🌸',
     verified: true,
     interests: ['Путешествия', 'Йога', 'Музыка'],
-    photos: 4
+    photos: 4,
+    location: 'Москва, в 5 км от вас',
+    work: 'Маркетолог в IT-компании',
+    education: 'МГУ, факультет журналистики',
+    height: '168 см',
+    lookingFor: 'Серьёзные отношения'
   },
   {
     id: 2,
@@ -33,7 +44,12 @@ const mockProfiles: Profile[] = [
     bio: 'Фотограф и художник. Обожаю закаты и долгие прогулки ✨',
     verified: true,
     interests: ['Искусство', 'Фотография', 'Природа'],
-    photos: 6
+    photos: 6,
+    location: 'Москва, в 3 км от вас',
+    work: 'Фотограф-фрилансер',
+    education: 'Академия художеств',
+    height: '165 см',
+    lookingFor: 'Знакомство и общение'
   },
   {
     id: 3,
@@ -42,7 +58,12 @@ const mockProfiles: Profile[] = [
     bio: 'Работаю в IT, в свободное время читаю книги и смотрю сериалы 📚',
     verified: false,
     interests: ['Книги', 'Кино', 'Технологии'],
-    photos: 3
+    photos: 3,
+    location: 'Москва, в 7 км от вас',
+    work: 'Frontend разработчик',
+    education: 'МФТИ',
+    height: '172 см',
+    lookingFor: 'Серьёзные отношения'
   }
 ];
 
@@ -62,6 +83,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('search');
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
   const [likedProfiles, setLikedProfiles] = useState<number[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
 
   const currentProfile = mockProfiles[currentProfileIndex];
 
@@ -81,6 +103,23 @@ const Index = () => {
       setCurrentProfileIndex(0);
     }
   };
+
+  if (selectedProfile) {
+    return (
+      <ProfileDetail
+        profile={selectedProfile}
+        onBack={() => setSelectedProfile(null)}
+        onLike={() => {
+          handleLike();
+          setSelectedProfile(null);
+        }}
+        onMessage={() => {
+          setActiveTab('messages');
+          setSelectedProfile(null);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,7 +145,10 @@ const Index = () => {
                 </div>
 
                 {currentProfile && (
-                  <Card className="overflow-hidden border-2 border-border shadow-lg animate-scale-in">
+                  <Card 
+                    className="overflow-hidden border-2 border-border shadow-lg animate-scale-in cursor-pointer"
+                    onClick={() => setSelectedProfile(currentProfile)}
+                  >
                     <div className="relative h-96 bg-gradient-to-br from-secondary to-accent flex items-center justify-center">
                       <div className="text-center">
                         <Avatar className="w-32 h-32 mx-auto mb-4 border-4 border-white shadow-xl">
@@ -158,14 +200,20 @@ const Index = () => {
                           variant="outline"
                           size="lg"
                           className="flex-1 rounded-full border-2 hover:scale-105 transition-transform"
-                          onClick={handleSkip}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSkip();
+                          }}
                         >
                           <Icon name="X" size={24} />
                         </Button>
                         <Button
                           size="lg"
                           className="flex-1 rounded-full bg-gradient-to-r from-primary to-secondary hover:scale-105 transition-transform shadow-lg"
-                          onClick={handleLike}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLike();
+                          }}
                         >
                           <Icon name="Heart" size={24} />
                         </Button>
