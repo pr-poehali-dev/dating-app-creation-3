@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Icon from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProfileDetail from '@/components/ProfileDetail';
+import SearchFilters, { SearchFiltersState } from '@/components/SearchFilters';
 
 interface Profile {
   id: number;
@@ -20,6 +21,7 @@ interface Profile {
   education?: string;
   height?: string;
   lookingFor?: string;
+  distance?: number;
 }
 
 const mockProfiles: Profile[] = [
@@ -35,7 +37,8 @@ const mockProfiles: Profile[] = [
     work: 'Маркетолог в IT-компании',
     education: 'МГУ, факультет журналистики',
     height: '168 см',
-    lookingFor: 'Серьёзные отношения'
+    lookingFor: 'Серьёзные отношения',
+    distance: 5
   },
   {
     id: 2,
@@ -49,7 +52,8 @@ const mockProfiles: Profile[] = [
     work: 'Фотограф-фрилансер',
     education: 'Академия художеств',
     height: '165 см',
-    lookingFor: 'Знакомство и общение'
+    lookingFor: 'Знакомство и общение',
+    distance: 3
   },
   {
     id: 3,
@@ -63,7 +67,8 @@ const mockProfiles: Profile[] = [
     work: 'Frontend разработчик',
     education: 'МФТИ',
     height: '172 см',
-    lookingFor: 'Серьёзные отношения'
+    lookingFor: 'Серьёзные отношения',
+    distance: 7
   }
 ];
 
@@ -84,8 +89,50 @@ const Index = () => {
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
   const [likedProfiles, setLikedProfiles] = useState<number[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [filters, setFilters] = useState<SearchFiltersState>({
+    ageRange: [18, 50],
+    distance: 50,
+    verified: false,
+    selectedInterests: []
+  });
 
-  const currentProfile = mockProfiles[currentProfileIndex];
+  const filteredProfiles = useMemo(() => {
+    return mockProfiles.filter(profile => {
+      if (profile.age < filters.ageRange[0] || profile.age > filters.ageRange[1]) {
+        return false;
+      }
+
+      if (profile.distance && profile.distance > filters.distance) {
+        return false;
+      }
+
+      if (filters.verified && !profile.verified) {
+        return false;
+      }
+
+      if (filters.selectedInterests.length > 0) {
+        const hasCommonInterest = profile.interests.some(interest =>
+          filters.selectedInterests.includes(interest)
+        );
+        if (!hasCommonInterest) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [filters]);
+
+  const currentProfile = filteredProfiles[currentProfileIndex];
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.ageRange[0] !== 18 || filters.ageRange[1] !== 50) count++;
+    if (filters.distance !== 50) count++;
+    if (filters.verified) count++;
+    if (filters.selectedInterests.length > 0) count++;
+    return count;
+  }, [filters]);
 
   const handleLike = () => {
     setLikedProfiles([...likedProfiles, currentProfile.id]);
@@ -97,11 +144,16 @@ const Index = () => {
   };
 
   const nextProfile = () => {
-    if (currentProfileIndex < mockProfiles.length - 1) {
+    if (currentProfileIndex < filteredProfiles.length - 1) {
       setCurrentProfileIndex(currentProfileIndex + 1);
     } else {
       setCurrentProfileIndex(0);
     }
+  };
+
+  const handleFiltersChange = (newFilters: SearchFiltersState) => {
+    setFilters(newFilters);
+    setCurrentProfileIndex(0);
   };
 
   if (selectedProfile) {
@@ -139,12 +191,46 @@ const Index = () => {
 
             <TabsContent value="search" className="p-4 mt-0 animate-fade-in">
               <div className="space-y-4">
-                <div className="text-center mb-6">
-                  <h2 className="text-xl font-semibold mb-1">Найди свою половинку</h2>
-                  <p className="text-sm text-muted-foreground">Свайпай и открывай новых людей</p>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="text-center flex-1">
+                    <h2 className="text-xl font-semibold mb-1">Найди свою половинку</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {filteredProfiles.length === 0 
+                        ? 'Нет профилей по фильтрам' 
+                        : `${filteredProfiles.length} ${filteredProfiles.length === 1 ? 'профиль' : 'профилей'}`}
+                    </p>
+                  </div>
+                  <SearchFilters 
+                    filters={filters} 
+                    onChange={handleFiltersChange}
+                    activeFiltersCount={activeFiltersCount}
+                  />
                 </div>
 
-                {currentProfile && (
+                {filteredProfiles.length === 0 ? (
+                  <Card className="p-8 text-center space-y-4 animate-fade-in">
+                    <div className="w-20 h-20 mx-auto bg-secondary/20 rounded-full flex items-center justify-center">
+                      <Icon name="Search" size={32} className="text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-2">Нет подходящих профилей</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Попробуйте изменить фильтры, чтобы увидеть больше людей
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => handleFiltersChange({
+                          ageRange: [18, 50],
+                          distance: 50,
+                          verified: false,
+                          selectedInterests: []
+                        })}
+                      >
+                        Сбросить фильтры
+                      </Button>
+                    </div>
+                  </Card>
+                ) : currentProfile ? (
                   <Card 
                     className="overflow-hidden border-2 border-border shadow-lg animate-scale-in cursor-pointer"
                     onClick={() => setSelectedProfile(currentProfile)}
@@ -220,7 +306,7 @@ const Index = () => {
                       </div>
                     </div>
                   </Card>
-                )}
+                ) : null}
               </div>
             </TabsContent>
 
